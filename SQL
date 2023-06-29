@@ -1,0 +1,161 @@
+-- 	What is the total number of rows in each of the 3 tables in the database?
+
+SELECT COUNT(CUSTOMER_ID) AS NUMBER_OF_ROWS FROM dbo.CUSTOMER
+UNION ALL
+SELECT COUNT(PROD_CAT_CODE) FROM dbo.PROD_CAT_INFO
+UNION ALL
+SELECT COUNT(TRANSACTION_ID) FROM dbo.TRANSACTIONS
+
+
+--  What is the total number of transactions that have a return?
+
+SELECT COUNT(TRANSACTION_ID) AS Trasnaction_return FROM dbo.TRANSACTIONS
+WHERE QTY<0
+
+--  What is the time range of transaction data available for analysis?
+-- show the output in number of days, months and years simultaneously in different columns
+
+SELECT * from Transactions
+
+select DATEDIFF(d,min(tran_date),max(tran_date))  'no_of_days',
+DATEDIFF(m,min(tran_date),max(tran_date)) 'no_of_months',
+DATEDIFF(y,min(tran_date),max(tran_date))  'no_of_years' from Transactions
+
+
+
+-- what product category does the sub-category "DIY" belong to?
+
+select * from  prod_cat_info
+
+
+SELECT PROD_CAT, PROD_SUBCAT FROM dbo.PROD_CAT_INFO
+WHERE PROD_SUBCAT='DIY'
+
+--  which channel is most frequently used for transaction?
+
+
+select * from Transactions
+
+SELECT STORE_TYPE AS CHANNEL,COUNT(TRANSACTION_ID) AS NO_OF_TRANSACTION FROM dbo.TRANSACTIONS
+GROUP BY STORE_TYPE
+ORDER BY STORE_TYPE Desc
+
+
+
+--  what is the count of male and female customer in the database?
+
+SELECT GENDER,COUNT(*) as Gender_count FROM DBO.CUSTOMER 
+GROUP BY GENDER
+
+
+--  from which city do we have maximum no of customers and how many?
+
+select * from Customer
+
+SELECT CITY_CODE,COUNT(CUSTOMER_ID) AS NUMBER_OF_CUSTOMERS FROM DBO.CUSTOMER
+GROUP BY CITY_CODE 
+ORDER BY COUNT(CUSTOMER_ID) DESC
+
+
+
+--  how many sub_categories are there under the books category?
+
+SELECT PROD_CAT AS CATEGORY,COUNT(DISTINCT PROD_SUBCAT)AS SUB_CATEGORY FROM DBO.PROD_CAT_INFO
+WHERE PROD_CAT='BOOKS'
+GROUP BY PROD_CAT
+
+
+
+--  what is max quantity of products ever ordered?
+
+select max(Qty)  from Transactions
+
+
+
+--  what is the net total revenue generated in catogories 
+--         electronics and books?
+
+SELECT SUM(TOTAL_AMT) AS TOTAL_REVENUE FROM DBO.TRANSACTIONS
+WHERE PROD_CAT_CODE IN (3,5)
+
+
+--  how many customer have >10 transactions with us excluding return?
+
+select * from Transactions
+
+SELECT COUNT(DISTINCT CUST_ID) AS NO_OF_CUSTOMERS FROM DBO.TRANSACTIONS
+WHERE QTY<0
+HAVING COUNT(TRANSACTION_ID)>10
+
+
+
+
+--  What is the combined revenue earned from the "Electronics" & "Clothing" 
+--    categories, from "Flagship stores"?
+
+SELECT DBO.TRANSACTIONS.STORE_TYPE,SUM(DBO.TRANSACTIONS.TOTAL_AMT) AS COMBINED_REVENUE FROM DBO.TRANSACTIONS 
+LEFT JOIN DBO.PROD_CAT_INFO ON DBO.TRANSACTIONS.PROD_CAT_CODE=DBO.PROD_CAT_INFO.PROD_CAT_CODE
+WHERE dbo.PROD_CAT_INFO.PROD_CAT IN ('Electronics','clothing')
+GROUP BY DBO.TRANSACTIONS.STORE_TYPE
+HAVING DBO.TRANSACTIONS.STORE_TYPE='Flagship store'
+
+
+
+
+-- what is the total revenue generated from "male" customer in "electronics'
+-- category ? output should display total revenue by pro sub_cat.
+
+SELECT DBO.PROD_CAT_INFO.PROD_SUBCAT,SUM(DBO.TRANSACTIONS.TOTAL_AMT) AS TOTAL_REVENUE FROM DBO.CUSTOMER
+LEFT JOIN DBO.TRANSACTIONS ON DBO.CUSTOMER.CUSTOMER_ID=DBO.TRANSACTIONS.CUST_ID
+LEFT JOIN DBO.PROD_CAT_INFO ON DBO.TRANSACTIONS.PROD_SUBCAT_CODE=DBO.PROD_CAT_INFO.PROD_SUB_CAT_CODE
+WHERE DBO.PROD_CAT_INFO.PROD_CAT='ELECTRONICS'AND DBO.TRANSACTIONS.QTY>0
+GROUP BY DBO.CUSTOMER.GENDER,DBO.PROD_CAT_INFO.PROD_SUBCAT
+HAVING GENDER='M'
+
+
+
+--  what is a percentage of sales and returns by product sub category ;
+-- display only top 5 sub categories in terms of sales.
+
+
+select TOP 5 PROD_SUBCAT,
+(QTY*100/(select sum(QTY) from DBO.TRANSACTIONS)) as PERCEN_OF_SALES,
+(TOTAL_AMT*100/(SELECT SUM(TOTAL_AMT) FROM DBO.TRANSACTIONS)) AS PERCEN_OF_REVENUE
+from DBO.TRANSACTIONS
+LEFT JOIN DBO.PROD_CAT_INFO ON 
+DBO.TRANSACTIONS.PROD_CAT_CODE=DBO.PROD_CAT_INFO.PROD_CAT_CODE
+GROUP BY PROD_SUBCAT,QTY,TOTAL_AMT
+ORDER BY QTY DESC,TOTAL_AMT DESC
+
+
+
+--   Which store-type sells the maximum products, by value of sales amount and by quantity sold?
+
+SELECT STORE_TYPE,SUM(TOTAL_AMT) AS SALES_AMOUNT,COUNT(QTY) AS QUANTITY_SOLD FROM DBO.TRANSACTIONS
+GROUP BY STORE_TYPE
+ORDER BY COUNT(QTY) DESC
+
+
+--  What are the categories for which average revenue is above the overall average 
+
+SELECT DBO.PROD_CAT_INFO.PROD_CAT,AVG(DBO.TRANSACTIONS.TOTAL_AMT) AS AVERAGE_REVENUE FROM DBO.PROD_CAT_INFO
+LEFT JOIN DBO.TRANSACTIONS ON DBO.PROD_CAT_INFO.PROD_CAT_CODE=DBO.TRANSACTIONS.PROD_CAT_CODE
+GROUP BY DBO.PROD_CAT_INFO.PROD_CAT
+HAVING AVG(DBO.TRANSACTIONS.TOTAL_AMT)>(SELECT AVG(TOTAL_AMT) FROM DBO.TRANSACTIONS)
+
+               
+			   
+
+--  Find the average and total revenue by each sub category for the categories which are among top 5 categories in terms of quantity sold
+
+SELECT TOP 5 DBO.PROD_CAT_INFO.PROD_SUBCAT,AVG(DBO.TRANSACTIONS.TOTAL_AMT) AS AVERAGE_RENVENUE,SUM(DBO.TRANSACTIONS.TOTAL_AMT)AS TOTAL_REVENUE
+FROM DBO.TRANSACTIONS
+LEFT JOIN DBO.PROD_CAT_INFO ON DBO.PROD_CAT_INFO.PROD_CAT_CODE=DBO.TRANSACTIONS.PROD_CAT_CODE
+WHERE TOTAL_AMT>0
+GROUP BY DBO.PROD_CAT_INFO.PROD_SUBCAT,DBO.TRANSACTIONS.QTY
+
+
+
+
+
+
